@@ -1,0 +1,34 @@
+# Node
+node_modules/
+.next/
+out/
+build/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+backend/.env
+backend/venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.vscode/
+*.log
+backend.log
+frontend.log
+nohup.out
+cleanup_db.py
+get_mobile_model.py
