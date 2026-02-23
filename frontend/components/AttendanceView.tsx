@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
 import { Upload, Loader2, Users, UserCheck, UserX, AlertCircle, ArrowLeft } from 'lucide-react';
-import { faceProcessor, FaceEmbedding } from '@/lib/faceProcessor';
+// import { faceProcessor, FaceEmbedding } from '@/lib/faceProcessor';
 
 export default function AttendanceView({ onBack }: { onBack: () => void }) {
     const [file, setFile] = useState<File | null>(null);
@@ -30,45 +30,20 @@ export default function AttendanceView({ onBack }: { onBack: () => void }) {
 
         setLoading(true);
         setError('');
-        setProgress('Initializing AI models...');
+        setProgress('Uploading image for analysis...');
 
         try {
-            // Step 1: Initialize face processor
-            await faceProcessor.initialize();
-
-            // Step 2: Load and preprocess image
-            setProgress('Analyzing classroom photo...');
-            const imageData = await (faceProcessor.constructor as any).loadImageData(file);
-
-            // Step 3: Process image (detect + extract all embeddings)
-            setProgress('Detecting faces...');
-            const embeddings: FaceEmbedding[] = await faceProcessor.processAttendanceImage(
-                imageData,
-                (current, total) => {
-                    setProgress(`Processing face ${current} of ${total}...`);
-                }
-            );
-
-            if (embeddings.length === 0) {
-                throw new Error("No faces detected in the image. Please use a clearer photo of the classroom.");
-            }
-
-            setProgress(`Matching ${embeddings.length} students with database...`);
-
-            // Step 4: Send embeddings to server for matching
-            const payload = {
-                embeddings: embeddings.map(e => ({
-                    vector: e.vector,
-                    bbox: e.bbox,
-                    score: e.score,
-                    quality: e.quality,
-                    thumbnail: e.thumbnail
-                }))
-            };
-            console.log('📤 Sending attendance payload:', payload);
+            const formData = new FormData();
+            formData.append('file', file);
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const res = await axios.post(`${apiUrl}/attendance/mark`, payload);
+
+            setProgress('Processing on server...');
+            const res = await axios.post(`${apiUrl}/attendance/mark`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
 
             console.log(res.data);
             setResult(res.data);

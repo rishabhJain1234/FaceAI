@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from database import students_collection, attendance_collection
@@ -8,20 +8,11 @@ import uuid
 
 router = APIRouter()
 
-class EmbeddingData(BaseModel):
-    vector: List[float]
-    bbox: List[float]
-    score: float
-    quality: float = 100.0
-    thumbnail: Optional[str] = None
-
-class AttendanceRequest(BaseModel):
-    embeddings: List[EmbeddingData]
-
 @router.post("/mark")
-async def mark_attendance(request: AttendanceRequest):
+async def mark_attendance(file: UploadFile = File(...)):
     """
-    Mark attendance using pre-computed embeddings from client
+    Mark attendance by uploading an image.
+    Inference is performed on the server.
     """
     try:
         # Get all registered students
@@ -29,21 +20,22 @@ async def mark_attendance(request: AttendanceRequest):
         if not students:
             raise HTTPException(status_code=400, detail="No students registered yet")
             
-        # Match embeddings
-        # The client sends a list of embedding objects. We transform them for the service.
-        input_embeddings = [
-            {
-                "vector": e.vector, 
-                "bbox": e.bbox, 
-                "score": e.score, 
-                "quality": e.quality,
-                "thumbnail": e.thumbnail
-            } 
-            for e in request.embeddings
-        ]
+        # Read image content
+        image_content = await file.read()
+        
+        # Run Inference (Detect + Recognize)
+        from services.face_processor import face_processor_service
+        embeddings = face_processor_service.process_image(image_content)
+        
+        if not embeddings:
+            raise HTTPException(status_code=400, detail="No faces detected in the image")
+        
+        # Match embeddings using existing service logic
+        # transform to existing structure if needed, but match_multiple_embeddings accepts dicts
+        # face_processor returns list of dicts with: vector, bbox, score, quality, thumbnail
         
         result = FaceService.match_multiple_embeddings(
-            input_embeddings,
+            embeddings,
             students,
             threshold=0.45
         )
@@ -59,7 +51,6 @@ async def mark_attendance(request: AttendanceRequest):
                 })
         
         # Prepare response data matching the expected frontend structure
-        # Note: result['present_students'] already contain student docs
         present_clean = []
         for s in result['present_students']:
             present_clean.append({
@@ -73,7 +64,7 @@ async def mark_attendance(request: AttendanceRequest):
             "unknown_count": result['unknown_count'],
             "total_detected": result['total_detected'],
             "total_registered": len(students),
-            "matches": result.get('matches', []) # Optional debug info
+            "matches": result.get('matches', [])
         }
         
         attendance_record = {
@@ -85,8 +76,13 @@ async def mark_attendance(request: AttendanceRequest):
         
         return response_data
         
+    except HTTPException as he:
+        raise he
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         print(f"Error marking attendance: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        # In production, logging the stack trace is better
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

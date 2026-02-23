@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
 import { Upload, Loader2, Check, X, ArrowLeft } from 'lucide-react';
-import { faceProcessor } from '@/lib/faceProcessor';
+// import { faceProcessor } from '@/lib/faceProcessor';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function AddStudentView({ onBack }: { onBack: () => void }) {
@@ -34,40 +34,21 @@ export default function AddStudentView({ onBack }: { onBack: () => void }) {
         setLoading(true);
         setStatus('idle');
         setMessage('');
-        setProgress('Initializing AI models...');
+        setProgress('Uploading student data...');
 
         try {
-            // Step 1: Initialize face processor
-            await faceProcessor.initialize();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', name);
+            formData.append('student_id', uuidv4());
 
-            // Step 2: Load and preprocess image
-            setProgress('Analyzing photo...');
-            const imageData = await (faceProcessor.constructor as any).loadImageData(file);
-
-            // Step 3: Detect faces
-            setProgress('Detecting face...');
-            const faces = await faceProcessor.detectFaces(imageData, 0.5);
-
-            if (faces.length === 0) {
-                throw new Error("No face detected in the image. Please use a clearer photo.");
-            }
-            if (faces.length > 1) {
-                throw new Error("Multiple faces detected. Please upload a photo with only one person.");
-            }
-
-            // Step 4: Extract embedding
-            setProgress('Generating face signature...');
-            const embedding = await faceProcessor.extractEmbedding(imageData, faces[0].bbox, faces[0].landmarks);
-
-            // Step 5: Send embedding to server
-            setProgress('Registering with server...');
-            const studentId = uuidv4();
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-            await axios.post(`${apiUrl}/students/add`, {
-                name,
-                student_id: studentId,
-                face_embedding: embedding
+            setProgress('Processing on server...');
+            await axios.post(`${apiUrl}/students/add`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
 
             setStatus('success');
@@ -106,7 +87,7 @@ export default function AddStudentView({ onBack }: { onBack: () => void }) {
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
+                        className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
                         placeholder="e.g. John Doe"
                         required
                     />

@@ -4,3 +4,5 @@ python-multipart==0.0.20
 python-dotenv==1.0.1
 pymongo==4.10.1
 numpy==2.2.6
+onnxruntime
+opencv-python-headless
