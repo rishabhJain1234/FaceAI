@@ -1,11 +1,18 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserPlus, ClipboardCheck } from 'lucide-react';
 import AddStudentView from '@/components/AddStudentView';
 import AttendanceView from '@/components/AttendanceView';
 
 export default function Home() {
   const [activeView, setActiveView] = useState<'home' | 'add_student' | 'mark_attendance'>('home');
+
+  // Wake up Render backend on page load (free tier spins down after inactivity)
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    fetch(`${apiUrl}/`).catch(() => { }); // silent — just to wake the server
+  }, []);
+
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8">
