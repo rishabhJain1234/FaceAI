@@ -42,7 +42,7 @@ export default function AddStudentView({ onBack }: { onBack: () => void }) {
             formData.append('name', name);
             formData.append('student_id', uuidv4());
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 
             setProgress('Processing on server...');
             await axios.post(`${apiUrl}/students/add`, formData, {

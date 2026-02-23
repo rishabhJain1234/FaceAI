@@ -9,7 +9,7 @@ export default function Home() {
 
   // Wake up Render backend on page load (free tier spins down after inactivity)
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '');
     fetch(`${apiUrl}/`).catch(() => { }); // silent — just to wake the server
   }, []);
 

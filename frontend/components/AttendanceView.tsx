@@ -36,7 +36,7 @@ export default function AttendanceView({ onBack }: { onBack: () => void }) {
             const formData = new FormData();
             formData.append('file', file);
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 
             setProgress('Processing on server...');
             const res = await axios.post(`${apiUrl}/attendance/mark`, formData, {
